@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"os"
 	"strconv"
@@ -37,21 +38,23 @@ func NewNoobEngine(chess960 bool) (*NoobEngine, error) {
 
 func (ne *NoobEngine) Run() error {
 	move_no := 0
-	depth := 5
+	depth := 6
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		if !ne.board.turn {
 			tree := NewNode(ne.board, depth)
-			// eval, moves := tree.EvaluateTreeWithPruning(depth, false, -math.MaxFloat32, math.MaxFloat32)
-			result := make(chan struct {
-				float32
-				Move
-			})
-			go tree.EvaluateTreeConcurrent(depth, false, result)
-			response := <-result
-			fmt.Println(response.float32)
-			fmt.Println(response.Move)
-			move := response.Move
+			eval, moves := tree.EvaluateTreeWithPruning(depth, false, -math.MaxFloat32, math.MaxFloat32)
+			// result := make(chan struct {
+			// 	float32
+			// 	Move
+			// })
+			// go tree.EvaluateTreeConcurrent(depth, false, result)
+			// response := <-result
+			// fmt.Println(response.float32)
+			// fmt.Println(response.Move)
+			fmt.Println(eval)
+			fmt.Println(moves[0])
+			move := moves[0]
 			err := ne.board.MakeMove(move.piece, move.init, move.final)
 			if err != nil {
 				fmt.Println(err.Error())
