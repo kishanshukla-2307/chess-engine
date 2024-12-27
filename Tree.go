@@ -88,3 +88,112 @@ func (n *Node) EvaluateTree(depth int, turn bool) (float32, []Move) {
 		return n.eval, n.topMoves
 	}
 }
+
+func (n *Node) EvaluateTreeWithPruning(depth int, turn bool, alpha, beta float32) (float32, []Move) {
+	if depth == 0 {
+		return n.Evaluate(&n.board, turn), []Move{}
+	}
+	n.FindChildren(turn)
+	if turn {
+		var mn float32 = math.MaxFloat32
+		for _, child := range n.children {
+			eval, _ := child.Node.EvaluateTreeWithPruning(depth-1, !turn, alpha, beta)
+			if mn > eval {
+				n.topMoves = []Move{child.Move}
+				n.eval = eval
+				mn = eval
+			}
+			if beta > n.eval {
+				beta = n.eval
+			}
+			if alpha >= beta {
+				break
+			}
+		}
+		return n.eval, n.topMoves
+	} else {
+		var mx float32 = -math.MaxFloat32
+		for _, child := range n.children {
+			eval, _ := child.Node.EvaluateTreeWithPruning(depth-1, !turn, alpha, beta)
+			if mx < eval {
+				n.topMoves = []Move{child.Move}
+				n.eval = eval
+				mx = eval
+			}
+			if alpha < n.eval {
+				alpha = n.eval
+			}
+			if alpha >= beta {
+				break
+			}
+		}
+		return n.eval, n.topMoves
+	}
+}
+
+func (n *Node) EvaluateTreeConcurrent(depth int, turn bool, response chan struct {
+	float32
+	Move
+}) {
+	if depth == 0 {
+		response <- struct {
+			float32
+			Move
+		}{n.Evaluate(&n.board, turn), Move{}}
+		return
+	}
+	n.FindChildren(turn)
+	// var wg sync.WaitGroup
+	var childEvals []chan struct {
+		float32
+		Move
+	}
+	var childMoves []Move
+	for _, child := range n.children {
+		childEvals = append(childEvals, make(chan struct {
+			float32
+			Move
+		}))
+		childMoves = append(childMoves, child.Move)
+		go child.Node.EvaluateTreeConcurrent(depth-1, !turn, childEvals[len(childEvals)-1])
+	}
+	if turn {
+		var mn float32 = math.MaxFloat32
+		for idx, eval := range childEvals {
+			ev := <-eval
+			move := childMoves[idx]
+			if mn > ev.float32 {
+				n.topMoves = []Move{move}
+				n.eval = ev.float32
+				mn = ev.float32
+			} else if mn == ev.float32 && rand.IntN(2) < 1 {
+				n.topMoves = []Move{move}
+				n.eval = ev.float32
+				mn = ev.float32
+			}
+		}
+		response <- struct {
+			float32
+			Move
+		}{mn, n.topMoves[0]}
+	} else {
+		var mx float32 = -math.MaxFloat32
+		for idx, eval := range childEvals {
+			ev := <-eval
+			move := childMoves[idx]
+			if mx < ev.float32 {
+				n.topMoves = []Move{move}
+				n.eval = ev.float32
+				mx = ev.float32
+			} else if mx == ev.float32 && rand.IntN(2) < 1 {
+				n.topMoves = []Move{move}
+				n.eval = ev.float32
+				mx = ev.float32
+			}
+		}
+		response <- struct {
+			float32
+			Move
+		}{mx, n.topMoves[0]}
+	}
+}

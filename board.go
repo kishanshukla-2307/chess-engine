@@ -61,6 +61,9 @@ func (b *Board) InitializeBoard(chess960 bool) error {
 }
 
 func (b *Board) IsLegal(p Piece, init Position, final Position) (bool, error) {
+	if b.Get(init) != p {
+		return false, errors.New("No such piece there")
+	}
 	if init.Equal(final) {
 		return false, errors.New("init and final are same")
 	}
@@ -80,6 +83,8 @@ func (b *Board) IsLegal(p Piece, init Position, final Position) (bool, error) {
 		b.Place(p, final)
 		b.Place(-1, init)
 		if b.IsAttackedBySide(final, !p.Color()) {
+			b.Place(tarPiece, final)
+			b.Place(p, init)
 			return false, errors.New("King can't move into check")
 		}
 		b.Place(tarPiece, final)
@@ -95,22 +100,24 @@ func (b *Board) IsLegal(p Piece, init Position, final Position) (bool, error) {
 		}
 	}
 
-	if b.inCheck {
-		tarPiece := b.Get(final)
-		b.Place(p, final)
-		b.Place(-1, init)
-		var kingPos Position
-		if p.Color() {
-			kingPos = b.GetPiecePositions(BLACK_KING)[0]
-		} else {
-			kingPos = b.GetPiecePositions(WHITE_KING)[0]
-		}
-		if b.IsAttackedBySide(kingPos, !p.Color()) {
-			return false, errors.New("in check!")
-		}
+	// if b.inCheck {
+	tarPiece := b.Get(final)
+	b.Place(p, final)
+	b.Place(-1, init)
+	var kingPos Position
+	if p.Color() {
+		kingPos = b.GetPiecePositions(BLACK_KING)[0]
+	} else {
+		kingPos = b.GetPiecePositions(WHITE_KING)[0]
+	}
+	if b.IsAttackedBySide(kingPos, !p.Color()) {
 		b.Place(tarPiece, final)
 		b.Place(p, init)
+		return false, errors.New("in check!")
 	}
+	b.Place(tarPiece, final)
+	b.Place(p, init)
+	// }
 	return true, nil
 }
 
@@ -260,6 +267,7 @@ func (b *Board) GenerateMoves(side bool) []Move {
 			legalMoves = append(legalMoves, move)
 		}
 	}
+
 	return legalMoves
 }
 
