@@ -3,6 +3,8 @@ package chessEngine
 import (
 	"errors"
 	"fmt"
+
+	"github.com/kishanshukla-2307/chess-engine/utils"
 )
 
 type Board struct {
@@ -58,6 +60,22 @@ func (b *Board) InitializeBoard(chess960 bool) error {
 		b.squares[6][i] = BLACK_PAWN
 	}
 	return nil
+}
+
+func (b *Board) Hash() uint64 {
+	var hash uint64
+	var i, j int16
+	for i = 0; i < 8; i++ {
+		for j = 0; j < 8; j++ {
+			if !b.IsEmpty(&Pos{i, j}) {
+				hash = hash ^ utils.ZORBIST_TABLE[i*8+j][b.Get(&Pos{i, j})]
+			}
+		}
+	}
+	if b.turn {
+		hash = hash ^ utils.BLACK_TO__MOVE
+	}
+	return hash
 }
 
 func (b *Board) IsLegal(p Piece, init Position, final Position) (bool, error) {
@@ -247,17 +265,34 @@ func (b *Board) GenerateMovesForPiece(piece Piece) func(*Board, Position) []Move
 func (b *Board) GenerateMoves(side bool) []Move {
 	var moves []Move
 	if side {
-		for _, piece := range BLACK_PIECES {
-			positions := b.GetPiecePositions(piece)
-			for _, pos := range positions {
-				moves = append(moves, b.GenerateMovesForPiece(piece)(b, pos)...)
+		// for _, piece := range BLACK_PIECES {
+		// 	positions := b.GetPiecePositions(piece)
+		// 	for _, pos := range positions {
+		// 		moves = append(moves, b.GenerateMovesForPiece(piece)(b, pos)...)
+		// 	}
+		// }
+		var i, j int16
+		for i = 0; i < 8; i++ {
+			for j = 0; j < 8; j++ {
+				if !b.IsEmpty(&Pos{i, j}) && b.Get(&Pos{i, j}).Color() {
+					moves = append(moves, b.GenerateMovesForPiece(b.Get(&Pos{i, j}))(b, &Pos{i, j})...)
+				}
 			}
 		}
 	} else {
-		for _, piece := range WHITE_PIECES {
-			positions := b.GetPiecePositions(piece)
-			for _, pos := range positions {
-				moves = append(moves, b.GenerateMovesForPiece(piece)(b, pos)...)
+		// for _, piece := range WHITE_PIECES {
+		// 	positions := b.GetPiecePositions(piece)
+		// 	for _, pos := range positions {
+		// 		moves = append(moves, b.GenerateMovesForPiece(piece)(b, pos)...)
+		// 	}
+		// }
+
+		var i, j int16
+		for i = 0; i < 8; i++ {
+			for j = 0; j < 8; j++ {
+				if !b.IsEmpty(&Pos{i, j}) && !b.Get(&Pos{i, j}).Color() {
+					moves = append(moves, b.GenerateMovesForPiece(b.Get(&Pos{i, j}))(b, &Pos{i, j})...)
+				}
 			}
 		}
 	}

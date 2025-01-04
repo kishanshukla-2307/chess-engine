@@ -8,6 +8,11 @@ import (
 type ChessTree interface {
 }
 
+var MEMIOZE [10]map[uint64]struct {
+	eval  float32
+	moves []Move
+}
+
 type Node struct {
 	evaluator
 	board    Board
@@ -43,6 +48,10 @@ func (n *Node) FindChildren(turn bool) {
 }
 
 func (n *Node) EvaluateTree(depth int, turn bool) (float32, []Move) {
+	value, exists := MEMIOZE[depth][n.board.Hash()]
+	if exists {
+		return value.eval, value.moves
+	}
 	if depth == 0 {
 		return n.Evaluate(&n.board, turn), []Move{}
 	}
@@ -71,6 +80,10 @@ func (n *Node) EvaluateTree(depth int, turn bool) (float32, []Move) {
 				mn = eval.float32
 			}
 		}
+		MEMIOZE[depth][n.board.Hash()] = struct {
+			eval  float32
+			moves []Move
+		}{n.eval, n.topMoves}
 		return n.eval, n.topMoves
 	} else {
 		var mx float32 = -math.MaxFloat32
@@ -85,6 +98,10 @@ func (n *Node) EvaluateTree(depth int, turn bool) (float32, []Move) {
 				mx = eval.float32
 			}
 		}
+		MEMIOZE[depth][n.board.Hash()] = struct {
+			eval  float32
+			moves []Move
+		}{n.eval, n.topMoves}
 		return n.eval, n.topMoves
 	}
 }

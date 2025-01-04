@@ -1,14 +1,12 @@
 package chessEngine
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"math"
 	"math/rand/v2"
-	"os"
 	"strconv"
-	"strings"
+	"time"
 
 	"github.com/kishanshukla-2307/chess-engine/utils"
 )
@@ -38,10 +36,11 @@ func NewNoobEngine(chess960 bool) (*NoobEngine, error) {
 
 func (ne *NoobEngine) Run() error {
 	move_no := 0
-	depth := 6
-	reader := bufio.NewReader(os.Stdin)
+	depth := 5
+	// reader := bufio.NewReader(os.Stdin)
 	for {
 		if !ne.board.turn {
+			start := time.Now()
 			tree := NewNode(ne.board, depth)
 			eval, moves := tree.EvaluateTreeWithPruning(depth, false, -math.MaxFloat32, math.MaxFloat32)
 			// result := make(chan struct {
@@ -59,11 +58,34 @@ func (ne *NoobEngine) Run() error {
 			if err != nil {
 				fmt.Println(err.Error())
 			}
+			end := time.Now()
 			// if move_no > 0 {
 			// 	depth = 5
 			// 	fmt.Println("depth increased")
 			// }
+			fmt.Println("Time taken: ", end.Sub(start))
 		} else {
+			start := time.Now()
+			tree := NewNode(ne.board, depth)
+			eval, moves := tree.EvaluateTreeWithPruning(depth, true, -math.MaxFloat32, math.MaxFloat32)
+			// result := make(chan struct {
+			// 	float32
+			// 	Move
+			// })
+			// go tree.EvaluateTreeConcurrent(depth, false, result)
+			// response := <-result
+			// fmt.Println(response.float32)
+			// fmt.Println(response.Move)
+			fmt.Println(eval)
+			fmt.Println(moves[0])
+			move := moves[0]
+			err := ne.board.MakeMove(move.piece, move.init, move.final)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+
+			end := time.Now()
+			fmt.Println("Time taken: ", end.Sub(start))
 			// tree := NewNode(ne.board, 3)
 			// eval, moves := tree.EvaluateTree(3, true)
 			// fmt.Println(eval)
@@ -72,29 +94,30 @@ func (ne *NoobEngine) Run() error {
 			// if err != nil {
 			// 	fmt.Println(err.Error())
 			// }
-			fmt.Println("Enter Black's Move: ")
-			moveStr, _ := reader.ReadString('\n')
-			move := strings.Split(moveStr, " ")
-			piece, err := ne.PieceFromNotation(move[0])
-			if err != nil {
-				fmt.Println(err.Error())
-				continue
-			}
-			init, err := ne.PositionFromNotation(move[1])
-			if err != nil {
-				fmt.Println(err.Error())
-				continue
-			}
-			final, err := ne.PositionFromNotation(move[2])
-			if err != nil {
-				fmt.Println(err.Error())
-				continue
-			}
-			err = ne.board.MakeMove(piece, init, final)
-			if err != nil {
-				fmt.Println(err.Error())
-				continue
-			}
+
+			// fmt.Println("Enter Black's Move: ")
+			// moveStr, _ := reader.ReadString('\n')
+			// move := strings.Split(moveStr, " ")
+			// piece, err := ne.PieceFromNotation(move[0])
+			// if err != nil {
+			// 	fmt.Println(err.Error())
+			// 	continue
+			// }
+			// init, err := ne.PositionFromNotation(move[1])
+			// if err != nil {
+			// 	fmt.Println(err.Error())
+			// 	continue
+			// }
+			// final, err := ne.PositionFromNotation(move[2])
+			// if err != nil {
+			// 	fmt.Println(err.Error())
+			// 	continue
+			// }
+			// err = ne.board.MakeMove(piece, init, final)
+			// if err != nil {
+			// 	fmt.Println(err.Error())
+			// 	continue
+			// }
 		}
 		move_no++
 	}
